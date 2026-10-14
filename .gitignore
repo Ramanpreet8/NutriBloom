@@ -9,4 +9,8 @@ node_modules
 server/.yarn/cache
 
 client/.yarn/install-state.gz
+server/.yarn/install-state.gz.env
+.env.*
+!.env.example
+client/.yarn/install-state.gz
 server/.yarn/install-state.gz
