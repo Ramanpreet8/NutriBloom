@@ -1,16 +1,18 @@
-import express, { type Request, type Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import type { Request, Response } from 'express';
 
-const router = express.Router();
+const prisma = new PrismaClient();
 
-router.get('/day-meals', (_req: Request, res: Response) => {
-  res.json({
-    meals: [
-      { title: 'Breakfast', description: 'Greek yogurt, berries, and granola' },
-      { title: 'Lunch', description: 'Grilled chicken wrap with mixed greens' },
-      { title: 'Dinner', description: 'Salmon, quinoa, and roasted vegetables' },
-      { title: 'Snack', description: 'Apple slices with almond butter' },
-    ],
-  });
-});
-
-export default router;
+export const getDayMeals = async (req: Request, res: Response) => {
+  try {
+    const meals = await prisma.meal.findMany({
+      include: {
+        items: true,
+      },
+    });
+    res.json(meals);
+  } catch (error) {
+    console.error("Error fetching meals:", error);
+    res.status(500).json({ error: "Failed to fetch meals" });
+  }
+};
