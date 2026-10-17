@@ -9,6 +9,7 @@ import router from "./routes/sign-up.js"
 import cors from "cors";
 import passport from "passport";
 import mealRouter from "./routes/meals.js";
+import { getDayMeals } from "./dayMeals.js";
 
 
 //@ts-ignore
@@ -24,6 +25,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }))
 app.use(express.json());
+app.get("/day-meals", getDayMeals);
 app.use("/SignUp", router);
 app.use("/users", router);
 app.use("/", router);
@@ -40,4 +42,3 @@ app.get("/", (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-

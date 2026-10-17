@@ -52,6 +52,7 @@ model Meal {
   id       String   @id @default(uuid())
   userId   String   @map("user_id")
   mealType MealType @map("meal_type")
+  dietType String   @default("General") @map("diet_type")
   date     DateTime @default(now())
 
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -4,7 +4,7 @@ dotenv.config({ path: "../.env" });
 import express from "express";
 import mealRoutes from "./src/routes/meals.js";
 import type { Request, Response } from "express";
-import dayMealsRouter from "./src/dayMeals.js";
+import { getDayMeals } from "./src/dayMeals.js";
 import intakeRoutes from "./src/routes/intake.js";
 import signupRoutes from "./src/routes/sign-up.js";
 import loginRoutes from "./src/routes/login.js";
@@ -16,7 +16,7 @@ const app = express();
 // JSON middleware MUST come before routes
 app.use(express.json());
 
-app.use(dayMealsRouter);
+app.get("/day-meals", getDayMeals);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Diet API is running!");
