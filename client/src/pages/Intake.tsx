@@ -3,6 +3,7 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar,IonList,IonItem, I
 import './Intake.css';
 import useAuthStore from '../store/useAuthStore';
 import { useIonRouter } from '@ionic/react';
+import { apiUrl } from '../lib/api';
 
 const Intake = () => {
   const navigation = useIonRouter();
@@ -23,7 +24,7 @@ const Intake = () => {
     try
     {
       const response = await fetch(
-      'http://localhost:3000/survey',{
+      apiUrl('survey'),{
         method: 'POST',
         headers: {
           'Content-type': 'application/json',

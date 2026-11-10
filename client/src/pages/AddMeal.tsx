@@ -21,6 +21,7 @@ import {
   IonList
 } from '@ionic/react';
 import useAuthStore from '../store/useAuthStore';
+import { apiUrl } from '../lib/api';
 
 
 type Food = {
@@ -99,7 +100,7 @@ const AddMeal = () => {
           })))
       
       const response = await fetch(
-      'http://localhost:3000/meals',{
+      apiUrl('meal'),{
         method: 'POST',
         headers: {
           'Content-type': 'application/json',
@@ -316,4 +317,3 @@ const AddMeal = () => {
 };
 
 export default AddMeal;
-

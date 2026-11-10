@@ -25,10 +25,10 @@ import {
   IonItemDivider
 } from '@ionic/react';
 import useAuthStore from '../store/useAuthStore';
+import { apiUrl } from '../lib/api';
 
 
 const Login = () => {
-    const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
     const history = useHistory();
     const setToken = useAuthStore((state) => state.setToken);
 
@@ -42,7 +42,7 @@ const Login = () => {
     try
     {
       const response = await fetch(
-      'http://localhost:3000/login',{
+      apiUrl('login'),{
         method: 'POST',
         headers: {
           'Content-type': 'application/json'

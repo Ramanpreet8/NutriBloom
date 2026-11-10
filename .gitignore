@@ -14,3 +14,4 @@ server/.yarn/install-state.gz.env
 !.env.example
 client/.yarn/install-state.gz
 server/.yarn/install-state.gz
+_to_delete/

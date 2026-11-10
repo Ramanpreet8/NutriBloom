@@ -1,22 +1,11 @@
 // @ts-nocheck
 // JC approved nocheck 2026-08-11
-import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
 import express from "express";
 import bcrypt from "bcryptjs";
-
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../../generated/prisma/client.js";
+import prisma from "../lib/prisma.js";
 
 
 const router = express.Router();
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-const prisma = new PrismaClient({ adapter });
-
 
 // CREATE USER, /SignUp
 router.post("/", async (req, res) => {
@@ -29,7 +18,7 @@ router.post("/", async (req, res) => {
       });
     }
     
-    const existingUser = await prisma.User.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: {
         email,
       },
@@ -53,7 +42,7 @@ router.post("/", async (req, res) => {
 
     res.status(201).json({
       message: "Account created successfully",
-      uuid: user.uuid,
+      uuid: user.id,
       name: user.name,
       email: user.email,
     });

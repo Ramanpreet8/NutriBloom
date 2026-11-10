@@ -1,6 +1,32 @@
 # Title
 NutriBloom
 
+## Deploying the web app
+
+The client is a static Vite app and can be deployed to Netlify. The Express API
+and PostgreSQL database must also be deployed separately; Netlify does not run
+this server as a long-lived process.
+
+1. Deploy a PostgreSQL database and the API to a Node.js host (for example,
+   Render). From the repository root, use `npm install && npx prisma generate &&
+   npx prisma migrate deploy` as the build command and
+   `npx tsx server/src/index.ts` as the start command. Configure `DATABASE_URL`,
+   `JWT_SECRET`, and `CLIENT_URL` in the API host. `CLIENT_URL` must be your
+   Netlify site origin (for example, `https://your-site.netlify.app`); multiple
+   allowed origins can be comma-separated. The API reads the host-provided
+   `PORT`.
+2. In Netlify, import the repository with the repository root as the base
+   directory. `netlify.toml` configures the client build and SPA fallback.
+3. Add `VITE_API_URL` to the Netlify site's environment variables, set to the
+   deployed API origin without a trailing slash (for example,
+   `https://your-api.onrender.com`), then trigger a new deploy. Vite embeds this
+   value at build time.
+4. Do not use the local `.env` file for production credentials or commit it.
+   The API's PostgreSQL database must be reachable from the API host.
+
+The frontend falls back to `http://localhost:3000` when `VITE_API_URL` is
+unset, for local development.
+
 # Description
 NutriBloom is a full-stack diet planning application that creates personalized meal recommendations based on a user's age, height, weight, and BMI. It helps users make healthier food choices without eliminating their favorite meals by suggesting portion sizes and lower-calorie alternatives. The app features a balanced mix of American and Bangladeshi foods, nutrition information, and calorie tracking to support sustainable and realistic healthy eating habits
 

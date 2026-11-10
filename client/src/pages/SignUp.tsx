@@ -15,6 +15,7 @@ import {
 } from '@ionic/react';
 
 import './SignUp.css';
+import { apiUrl } from '../lib/api';
 
 const SignUp: React.FC = () => {
   const history = useHistory();
@@ -33,7 +34,7 @@ const SignUp: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/signup', {
+      const response = await fetch(apiUrl('signup'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

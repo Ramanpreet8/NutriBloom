@@ -14,6 +14,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
+import { apiUrl } from '../lib/api';
 
 type MealItem = {
   id: string;
@@ -28,7 +29,6 @@ type Meal = {
 };
 
 const DayMeals: React.FC = () => {
-  const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
   const [meals, setMeals] = useState<Meal[]>([]);
   const [filter, setFilter] = useState('General');
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ const DayMeals: React.FC = () => {
 
       try {
         const query = filter === 'General' ? '' : `?dietType=${encodeURIComponent(filter)}`;
-        const response = await fetch(`${apiUrl}/day-meals${query}`);
+        const response = await fetch(`${apiUrl('day-meals')}${query}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch meals (${response.status})`);
         }
@@ -57,7 +57,7 @@ const DayMeals: React.FC = () => {
     };
 
     void fetchDayMeals();
-  }, [apiUrl, filter]);
+  }, [filter]);
 
   return (
     <IonPage>

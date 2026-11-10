@@ -6,6 +6,7 @@ import { IonPage, IonTitle, IonContent } from '@ionic/react';
 import './Dashboard.css';
 import byDayMacros from './byDayMacros.json';
 import byDayCalories from './byDayCalories.json';
+import { apiUrl } from '../lib/api';
 
 const barData = [
   {
@@ -81,7 +82,7 @@ const Dashboard: React.FC = () => {
      useEffect(() => {
      const fetchData = async () => {
      try {
-     const response = await fetch('http://localhost:3000/meal', {
+     const response = await fetch(apiUrl('meal'), {
      method: 'GET',
      headers
      });
@@ -103,8 +104,8 @@ const Dashboard: React.FC = () => {
      const todayStr = new Date().toLocaleDateString('en-CA');
 
      const [drvRes, mealsRes] = await Promise.all([
-     fetch('http://localhost:3000/survey/me', {headers}),
-     fetch(`http://localhost:3000/meal/today-by-type?date=${todayStr}`, {headers}),
+     fetch(apiUrl('survey/me'), {headers}),
+     fetch(`${apiUrl('meal/today-by-type')}?date=${todayStr}`, {headers}),
      ]);
      const drv: DRV = await drvRes.json();
      const meals: TodayByType = await mealsRes.json();

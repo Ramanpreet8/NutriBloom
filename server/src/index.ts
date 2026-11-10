@@ -14,18 +14,29 @@ import { getDayMeals } from "./dayMeals.js";
 
 //@ts-ignore
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT ?? 3000);
+const allowedOrigins = [
+  "http://localhost:5173",
+  ...(process.env.CLIENT_URL ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+];
 
 // JSON middleware MUST come before routes
 app.use(passport.initialize());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [...new Set(allowedOrigins)],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }))
 app.use(express.json());
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});
 app.get("/day-meals", getDayMeals);
+app.use("/signup", router);
 app.use("/SignUp", router);
 app.use("/users", router);
 app.use("/", router);

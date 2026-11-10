@@ -1,11 +1,8 @@
 // @ts-nocheck
 // JC approved nocheck 2026-08-11
 
-import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
 import express from "express";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../../generated/prisma/client.js";
+import prisma from "../lib/prisma.js";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -14,10 +11,6 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 
 const loginRouter = express.Router();
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
-const prisma = new PrismaClient({ adapter });
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET){
