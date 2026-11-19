@@ -63,41 +63,32 @@ intakeRouter.post("/survey", passport.authenticate("jwt", { session: false }), a
       });
     }
 
-    if (!user) {
-      return res.status(404).json({
-        error: "User not found",
-      });
+    const existingInfo = await prisma.userInfo.findUnique({
+      where: {
+        userId: user.id
+      },
+    });
 
-      const existingInfo = await prisma.userInfo.findUnique({
-        where: {
-          userId: user.id
-        },
+    if (existingInfo) {
+      return res.status(409).json({
+        error: "Intake information already exists",
       });
-
-      if (existingInfo) {
-        return res.status(409).json({
-          error: "Intake information already exists",
-        });
-      }
-
-      const totalInches = Number(feet) * 12 + Number(inches);
-      const bmi = (Number(weight) / (totalInches * totalInches)) * 703;
-      const intake = await prisma.userInfo.create({
-        data: {
-          userId: user.id,
-          age: Number(age),
-          heightFeet: Number(feet),
-          heightInches: Number(inches),
-          weight: Number(weight),
-          sex: sex,
-          bmi: bmi,
-          activityFrequency: afreq,
-          activityType: atype,
-          fitnessGoal: goal,
-        },
-      });
-      return res.status(201).json(intake);
     }
+
+    const intake = await prisma.userInfo.create({
+      data: {
+        userId: user.id,
+        age: Number(age),
+        heightFeet: Number(feet),
+        heightInches: Number(inches),
+        weight: Number(weight),
+        sex: sex,
+        activityFrequency: afreq,
+        activityType: atype,
+        fitnessGoal: goal,
+      },
+    });
+    return res.status(201).json(intake);
   } catch (error) {
     console.error(error);
 
@@ -108,8 +99,39 @@ intakeRouter.post("/survey", passport.authenticate("jwt", { session: false }), a
 });
 
 
-// GET CURRENT USER'S INTAKE
-intakeRouter.get("/survey", passport.authenticate("jwt", { session: false }), async (req, res) => {
+function calculateDRV(intake) {
+  if (!intake) {
+    return {
+      dailyCalories: 2000,
+      dailyProtein: 100,
+      dailyCarbs: 250,
+      dailyFat: 65,
+    };
+  }
+
+  const totalInches = (Number(intake.heightFeet) * 12) + Number(intake.heightInches);
+  let bmr = (10 * (Number(intake.weight) * 0.453592)) + (6.25 * (totalInches * 2.54)) - (5 * Number(intake.age));
+  if (intake.sex === "Male") bmr += 5; else bmr -= 161;
+
+  const activityMult = intake.activityFrequency === "20" ? 1.725
+    : intake.activityFrequency === "15" ? 1.55
+    : intake.activityFrequency === "10" ? 1.375
+    : 1.2;
+
+  let dailyCalories = Math.round(bmr * activityMult);
+  if (intake.fitnessGoal === "WeightLoss") dailyCalories -= 500;
+  if (intake.fitnessGoal === "WeightGain" || intake.fitnessGoal === "MuscleGain") dailyCalories += 300;
+  dailyCalories = Math.max(dailyCalories, 1200);
+
+  return {
+    dailyCalories,
+    dailyProtein: Math.round((dailyCalories * 0.25) / 4),
+    dailyCarbs: Math.round((dailyCalories * 0.50) / 4),
+    dailyFat: Math.round((dailyCalories * 0.25) / 9),
+  };
+}
+
+const getSurveyHandler = async (req, res) => {
   try {
     const user = req.user;
 
@@ -125,13 +147,21 @@ intakeRouter.get("/survey", passport.authenticate("jwt", { session: false }), as
       },
     });
 
-    return res.status(200).json(intake);
+    const drv = calculateDRV(intake);
+
+    return res.status(200).json({
+      ...(intake || {}),
+      ...drv,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Failed to get intake information" });
   }
-}
-);
+};
+
+// GET CURRENT USER'S INTAKE & DRV
+intakeRouter.get("/survey", passport.authenticate("jwt", { session: false }), getSurveyHandler);
+intakeRouter.get("/survey/me", passport.authenticate("jwt", { session: false }), getSurveyHandler);
 
 /*
 const intake = await prisma.userInfo.create({
@@ -149,29 +179,6 @@ const intake = await prisma.userInfo.create({
   },
 });
 */
-
-// GET CURRENT USER'S INTAKE
-intakeRouter.get("/survey",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-    const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({
-        error: "Unauthorized",
-      });
-    }
-
-    const intake = await prisma.userInfo.findUnique({
-      where: {
-        userId: user.id,
-      }
-    });
-  }catch{
-    // TODO: catch error
-  }
-});
 
 // GET INTAKE FOR AUTHENTICATED USER
 intakeRouter.get("/intake", passport.authenticate("jwt", { session: false }), async (req, res) => {

@@ -86,7 +86,9 @@ mealRouter.get("/meal", passport.authenticate("jwt", { session: false }), async 
 
 // POST a meal
 mealRouter.post("/meal",passport.authenticate("jwt", { session: false }),async (req, res) => {
-for (const m of req.body) {
+  const items = Array.isArray(req.body) ? req.body : [req.body];
+  const createdMeals = [];
+  for (const m of items) {
       try {
         const {
           foodName,
@@ -128,7 +130,7 @@ for (const m of req.body) {
           },
         });
 
-        return res.status(201).json(meal);
+        createdMeals.push(meal);
 
       } catch (error) {
         console.error(error);
@@ -137,12 +139,70 @@ for (const m of req.body) {
         });
       }
     }
+    return res.status(201).json(createdMeals);
   }
 );
+
+// GET today's meals grouped by meal type
+mealRouter.get("/meal/today-by-type", passport.authenticate("jwt", { session: false }), async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const dateQuery = typeof req.query.date === "string" && req.query.date.length > 0
+      ? req.query.date
+      : new Date().toISOString().split("T")[0];
+
+    const startOfDay = new Date(`${dateQuery}T00:00:00.000Z`);
+    const endOfDay = new Date(`${dateQuery}T23:59:59.999Z`);
+
+    const meals = await prisma.meal.findMany({
+      where: {
+        userId: user.id,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    const emptyTotals = () => ({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    const result: Record<string, { calories: number; protein: number; carbs: number; fat: number }> = {
+      breakfast: emptyTotals(),
+      lunch: emptyTotals(),
+      dinner: emptyTotals(),
+      snack: emptyTotals(),
+    };
+
+    for (const m of meals) {
+      const typeKey = (m.mealType || "").toLowerCase();
+      if (!result[typeKey]) {
+        result[typeKey] = emptyTotals();
+      }
+      for (const item of m.items) {
+        result[typeKey].calories += Number(item.calories) || 0;
+        result[typeKey].protein += Number(item.protein) || 0;
+        result[typeKey].carbs += Number(item.carbs) || 0;
+        result[typeKey].fat += Number(item.fat) || 0;
+      }
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to fetch meals by type" });
+  }
+});
+
 // GET one meal for logged-in user
-mealRouter.get("/meal", passport.authenticate("jwt", { session: false }), async (req, res) => {
+mealRouter.get("/meal/:id", passport.authenticate("jwt", { session: false }), async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = req.params.id;
       const user = req.user;
 
       if (!user) {
@@ -243,7 +303,7 @@ mealRouter.put("/meal/:id", passport.authenticate("jwt", { session: false }),asy
 // DELETE a meal
 mealRouter.delete("/meal/:id",passport.authenticate("jwt", { session: false }),async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = req.params.id;
       const user = req.user;
 
       if (!user) {

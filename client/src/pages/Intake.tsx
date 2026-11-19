@@ -20,11 +20,14 @@ const Intake = () => {
 
   });
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const submitForm = async () => {
-    try
-    {
-      const response = await fetch(
-      apiUrl('survey'),{
+    setErrorMessage(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(apiUrl('survey'), {
         method: 'POST',
         headers: {
           'Content-type': 'application/json',
@@ -32,17 +35,25 @@ const Intake = () => {
         },
         body: JSON.stringify(FormData)
       });
-  
+
       const data = await response.json();
 
-      console.log('Saved',data);
-    } catch (error){
-      console.log(error);
-      console.log(token);
-      console.log(FormData);
-      
+      if (response.ok) {
+        navigation.push('/home');
+      } else {
+        const msg = data.error || data.message || 'Failed to submit intake assessment.';
+        setErrorMessage(msg);
+        alert(msg);
+      }
+    } catch (error) {
+      console.error(error);
+      const networkError = 'Unable to connect to the server. Please try again.';
+      setErrorMessage(networkError);
+      alert(networkError);
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
   
 
   return (
@@ -239,13 +250,19 @@ const Intake = () => {
           </IonList>
         </div>
 
+        {errorMessage && (
+          <div style={{ color: "var(--ion-color-danger, #eb445a)", textAlign: "center", margin: "12px 0" }}>
+            {errorMessage}
+          </div>
+        )}
+
         <IonButton 
-        expand="block"
-        className="submit-button" 
-          onClick={() => {
-	    navigation.push('/home');
-	  }}>
-          Submit
+          expand="block"
+          className="submit-button"
+          disabled={isSubmitting}
+          onClick={submitForm}
+        >
+          {isSubmitting ? "Submitting..." : "Submit"}
         </IonButton>
 
       </IonContent>
