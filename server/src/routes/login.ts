@@ -9,8 +9,19 @@ import jwt from "jsonwebtoken";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+import rateLimit from "express-rate-limit";
 
 const loginRouter = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many login attempts, please try again after 15 minutes",
+  },
+});
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET){
@@ -32,7 +43,7 @@ passport.use(
 
 
 // POST LOGIN, /login
-loginRouter.post("/login", passport.authenticate("local", {session: false}), async (req, res) => {
+loginRouter.post("/login", loginLimiter, passport.authenticate("local", {session: false}), async (req, res) => {
   try {
     const { email, password } = req.body;
 

@@ -3,13 +3,24 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import passport from "passport";
+import rateLimit from "express-rate-limit";
 import prisma from "../lib/prisma.js";
 
 
 const router = express.Router();
 
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 signup requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many accounts created from this IP, please try again after an hour",
+  },
+});
+
 // CREATE USER, /SignUp
-router.post("/", async (req, res) => {
+router.post("/", signupLimiter, async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
