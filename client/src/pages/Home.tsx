@@ -48,40 +48,54 @@ const Home: React.FC = () => {
                 your daily nutrition in one place.
               </p>
             </IonText>
-            /*Nutrition Summary */
-              <div className="nutrition-summary">
-              </div>
-
+            {/* Nutrition Summary */}
+            <div className="nutrition-summary">
               <div className="nutrition-item">
                 <h3>1,250</h3>
                 <p>Calories</p>
               </div>
 
-               <div className="nutrition-item">
+              <div className="nutrition-item">
                 <h3>65g</h3>
                 <p>Protein</p>
-               </div>
+              </div>
 
-                <div className="nutrition-item">
-                  <h3>140g</h3>
-                  <p>Carbs</p>
-                </div>
+              <div className="nutrition-item">
+                <h3>140g</h3>
+                <p>Carbs</p>
+              </div>
+            </div>
 
-
-                 {/* Start Assessment */}
+            {/* Actions */}
             <IonButton
               expand="block"
               color="success"
-              onClick={() => history.push('/intake')}
+              onClick={() => history.push('/meal')}
             >
-              Start Assessment
+              + Log a Meal
             </IonButton>
 
-            {/* Health Dashboard */}
             <IonButton
               expand="block"
               color="success"
               fill="outline"
+              onClick={() => history.push('/day-meals')}
+            >
+              Today's Meals Plan
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              color="success"
+              fill="outline"
+              onClick={() => history.push('/intake')}
+            >
+              Update Intake Assessment
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              color="success"
               onClick={() => history.push('/dashboard')}
             >
               My Health Dashboard

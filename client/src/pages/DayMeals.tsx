@@ -15,6 +15,8 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { apiUrl } from '../lib/api';
+import useAuthStore from '../store/useAuthStore';
+import { useHistory } from 'react-router-dom';
 
 type MealItem = {
   id: string;
@@ -29,6 +31,8 @@ type Meal = {
 };
 
 const DayMeals: React.FC = () => {
+  const history = useHistory();
+  const token = useAuthStore((state) => state.token);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [filter, setFilter] = useState('General');
   const [loading, setLoading] = useState(true);
@@ -41,7 +45,14 @@ const DayMeals: React.FC = () => {
 
       try {
         const query = filter === 'General' ? '' : `?dietType=${encodeURIComponent(filter)}`;
-        const response = await fetch(`${apiUrl('day-meals')}${query}`);
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${apiUrl('day-meals')}${query}`, {
+          headers,
+        });
         if (!response.ok) {
           throw new Error(`Failed to fetch meals (${response.status})`);
         }
@@ -117,8 +128,12 @@ const DayMeals: React.FC = () => {
               ))}
             </IonList>
 
-            <IonButton expand="block" color="success">
-              Save Day Plan
+            <IonButton expand="block" color="success" onClick={() => history.push('/meal')}>
+              + Add a Meal
+            </IonButton>
+
+            <IonButton expand="block" fill="outline" color="medium" onClick={() => history.push('/home')}>
+              Back to Home
             </IonButton>
           </IonCardContent>
         </IonCard>

@@ -9,6 +9,7 @@ import router from "./routes/sign-up.js"
 import cors from "cors";
 import passport from "passport";
 import mealRouter from "./routes/meals.js";
+import foodSearchRouter from "./routes/foodSearch.js";
 import { getDayMeals } from "./dayMeals.js";
 
 
@@ -43,6 +44,8 @@ app.use("/", router);
 app.use("/", loginRouter);
 app.use("/", intakeRouter);
 app.use("/", mealRouter);
+app.use("/", foodSearchRouter);
+app.use("/api", foodSearchRouter);
 
 
 app.get("/", (req: Request, res: Response) => {

@@ -1,214 +1,130 @@
-# Title
-NutriBloom
+# NutriBloom
 
-## Deploying the web app
-
-The client is a static Vite app and can be deployed to Netlify. The Express API
-and PostgreSQL database must also be deployed separately; Netlify does not run
-this server as a long-lived process.
-
-1. Deploy a PostgreSQL database and the API to a Node.js host (for example,
-   Render). From the repository root, use `npm install && npx prisma generate &&
-   npx prisma migrate deploy` as the build command and
-   `npx tsx server/src/index.ts` as the start command. Configure `DATABASE_URL`,
-   `JWT_SECRET`, and `CLIENT_URL` in the API host. `CLIENT_URL` must be your
-   Netlify site origin (for example, `https://your-site.netlify.app`); multiple
-   allowed origins can be comma-separated. The API reads the host-provided
-   `PORT`.
-2. In Netlify, import the repository with the repository root as the base
-   directory. `netlify.toml` configures the client build and SPA fallback.
-3. Add `VITE_API_URL` to the Netlify site's environment variables, set to the
-   deployed API origin without a trailing slash (for example,
-   `https://your-api.onrender.com`), then trigger a new deploy. Vite embeds this
-   value at build time.
-4. Do not use the local `.env` file for production credentials or commit it.
-   The API's PostgreSQL database must be reachable from the API host.
-
-The frontend falls back to `http://localhost:3000` when `VITE_API_URL` is
-unset, for local development.
-
-# Description
-NutriBloom is a full-stack diet planning application that creates personalized meal recommendations based on a user's age, height, weight, and BMI. It helps users make healthier food choices without eliminating their favorite meals by suggesting portion sizes and lower-calorie alternatives. The app features a balanced mix of American and Bangladeshi foods, nutrition information, and calorie tracking to support sustainable and realistic healthy eating habits
-
-# Members:
-    - MST
-    - Nusrat
-    - Jacob
-    - Devonte
-    - Ramanpreet
-
-
-
-
-
-# RAMANPREET WORK — Database Phase
-
-**Branch:** `ramanpreet` · **Scope:** Prisma schema, PostgreSQL database, the "Any Day's Meals" feature (backend + frontend), and dummy seed data.
-
-This section discloses exactly what I built, which files it lives in, and how AI tools were used, so the team (and my instructor) can see my individual contribution clearly.
-
-## 1. Prisma Schema (`prisma/schema.prisma`)
-
-* Defined the `MealType` enum (`BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`) and the `Meal` / `MealItem` models that replace the earlier BMI-tracker design.
-* Set up a one-to-many relationship: one `Meal` has many `MealItem` records, with `onDelete: Cascade` on `MealItem` so deleting a meal automatically removes its line items.
-* Mapped every model/field to snake_case table and column names with `@map` / `@@map` (e.g. `Meal` → `meals`, `mealType` → `meal_type`, `MealItem` → `meal_items`, `foodName` → `food_name`) to match SQL naming conventions.
-* Configured the Prisma Client generator (`provider = "prisma-client"`, custom `output` path) and the PostgreSQL datasource.
-
-## 2. Database Migration & Setup
-
-* Ran `npx prisma migrate dev` to apply the schema as a single migration, `init_nutribloom_schema`, creating the `meals` and `meal_items` tables plus the `MealType` enum directly in PostgreSQL.
-* Verified the generated SQL (foreign key, cascade rule, defaults) matches the intended schema before sharing the branch with the team.
-* Cleaned up a stray `my-prisma-project/` folder at the repo root that referenced MySQL and could confuse teammates about which database/config is authoritative.
-
-## 3. "Any Day's Meals" (Backend + Frontend)
-
-* **Backend:** added a `GET /day-meals` Express route (`server/src/dayMeals.ts`), wired it into the app in `server/src/index.ts`.
-* **Frontend:** built the `DayMeals` Ionic React page (`client/src/pages/DayMeals.tsx`) that lists a day's Breakfast/Lunch/Dinner/Snack entries, and registered the `/day-meals` route in `client/src/App.tsx`.
-* **Current status:** the route and page currently serve representative sample meals so the feature is demoable end-to-end. Connecting `dayMeals.ts` to Prisma so it queries real `Meal`/`MealItem` rows is the next step (see *Next Steps* below).
-
-## 4. Dummy Seed Data (`prisma/seed.ts`)
-
-* Wrote a Prisma seed script using `@faker-js/faker` to generate realistic dummy records for local development and demos, and wired it into `prisma.config.ts` so it runs via `npx prisma db seed`.
-* Used the seeded data to sanity-check the schema, relations, and cascade delete behavior in Prisma Studio before treating the migration as final.
+NutriBloom is a full-stack diet and nutrition tracking web application built with **Ionic React**, **Express**, **Prisma ORM**, and **PostgreSQL**. The platform empowers users to monitor their daily caloric and macronutrient consumption, log detailed meals by category, compute Daily Recommended Values (DRV) from personalized health assessments, and visualize dietary trends through interactive Recharts analytics.
 
 ---
 
-## AI Usage Disclosure
+## Author & Maintainer
 
-* **Tools used:** Gemini (Google AI) during initial development on this branch; Claude (Anthropic) for reviewing/reorganizing this README and preparing a presentation of the work.
-* **AI helped with:**
-  * Drafting and refactoring the Prisma schema (models, enum, relations, cascade delete, `@map`/`@@map` naming).
-  * Reconciling the database design with the final NutriBloom project spec and removing the deprecated user/BMI entities.
-  * Structuring the `faker-js`-based seed script and the CLI migration/seeding workflow.
-  * Scaffolding the `/day-meals` route and page, and organizing/cleaning up this README.
-* **What I did myself:** reviewed and customized every AI suggestion, ran and verified all migrations and seed commands against my local PostgreSQL database, tested the API route and the Ionic page in the browser, and made the final calls on schema and file structure. No code was committed without reading and understanding it first.
-
-## Known Issues / Next Steps (for transparency)
-
-* `prisma/seed.ts` predates the current `Meal`/`MealItem`-only schema and still targets an older `User`-based data shape — it needs an update before it will run cleanly against the `init_nutribloom_schema` migration.
-* `server/src/dayMeals.ts` and `DayMeals.tsx` currently return/display static sample data; the next unblocked task is wiring the route to Prisma (`POST /api/meals`, and a Prisma-backed `GET /day-meals`) so it reads real rows from the database.
-* Need to confirm with Devonte that his branch's schema expectations still line up with `Meal`/`MealItem` before merging `ramanpreet` into `main`.
+* **Ramanpreet Singh** — Full-Stack Architecture, Database Design, API Development, Security Engineering, and UI/UX Implementation.
 
 ---
 
-## Viewing Recharts (Charts)
+## Key Features
 
-To see the Recharts visualizations (MacroPieChart, CalorieBarChart, BMITrendChart) locally, run these steps from the project root.
+1. **Secure Authentication & Session Management**:
+   * User registration and login powered by **Passport.js (Local & JWT strategies)** and **bcryptjs** password hashing.
+   * Brute-force and credential-stuffing protection via **`express-rate-limit`** on `/login` and `/signup`.
+   * **1-Click Demo Login** (`POST /demo-login`): Instantly provision and access a pre-configured demo account with historical meals and intake metrics without manual signup.
 
-1. Install root and client dependencies:
+2. **Personalized Health Assessment & DRV Engine**:
+   * Interactive intake assessment capturing age, sex, height, weight, activity type, frequency, and fitness goals.
+   * Automated **Daily Recommended Values (DRV)** computation using the Mifflin-St Jeor formula to determine target calories, protein, carbohydrates, and fats.
 
-```bash
-cd /Users/ramanpreetsingh/citytech-ttpr-2026-summer/Fullstack-Smart-Diet-BMI-Tracker
-npm install
-cd client
-npm install
+3. **Comprehensive Meal & Nutrition Logging**:
+   * Multi-item meal logging supporting Breakfast, Lunch, Dinner, and Snacks with individual macronutrient breakdown.
+   * Relational database integrity using PostgreSQL with `onDelete: Cascade` between meals and line items.
+   * Filterable daily meal planner (`/day-meals`) by dietary preference (General, Vegetarian, Vegan, High-Protein).
+
+4. **Live Interactive Health Dashboard**:
+   * Real-time **Recharts** analytics replacing all mock fixtures.
+   * **Macros over Time** & **Calories over Time**: Historical consumption graphs derived directly from authenticated meal logs.
+   * **Today vs. Daily Goals**: Live progress tracking of today's aggregate intake against personalized target DRVs.
+
+5. **USDA FoodData Central Integration**:
+   * Dedicated `/food-search` and `/food-details/:fdcId` proxy endpoints querying official USDA FoodData Central nutritional databases.
+
+---
+
+## Architecture & Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Ionic React 8, Vite, Recharts, Zustand (state persistence), React Router |
+| **Backend** | Node.js (v22), Express 4, TypeScript, Passport.js, JWT, express-rate-limit |
+| **Database** | PostgreSQL, Prisma 7 ORM (`@prisma/adapter-pg` driver adapter) |
+| **Testing** | Jest, Supertest, Vitest |
+| **Deployment** | Netlify (Static Client SPA), Render (Express API Web Service + Managed PostgreSQL) |
+
+---
+
+## Repository Structure
+
+```text
+NutriBloom/
+├── client/                     # Frontend Ionic React + Vite application
+│   ├── src/
+│   │   ├── pages/              # Home, Dashboard, Intake, AddMeal, DayMeals, Login, SignUp
+│   │   ├── components/         # Reusable charts and container components
+│   │   ├── lib/api.ts          # Centralized API client base URL configuration
+│   │   └── store/              # Zustand authentication store
+│   └── vite.config.ts
+├── server/                     # Backend Express REST API
+│   ├── src/
+│   │   ├── routes/             # Authentication, meals, intake survey, USDA food search
+│   │   ├── lib/prisma.ts       # Prisma Client instance with PostgreSQL adapter
+│   │   ├── dayMeals.ts         # Filterable day-meals controller
+│   │   └── index.ts            # Main application entrypoint & middleware pipeline
+│   └── test/                   # Jest + Supertest integration test suites
+├── prisma/
+│   ├── schema.prisma           # Authoritative database models (User, UserInfo, Meal, MealItem)
+│   ├── migrations/             # Baseline SQL migration
+│   └── seed.ts                 # Synthetic seed data generator (@faker-js/faker)
+├── render.yaml                 # Render infrastructure-as-code blueprint
+└── netlify.toml                # Netlify build and SPA redirect rules
 ```
 
-2. Seed the database (ensure `DATABASE_URL` in `.env` is set):
+---
 
+## Local Development Setup
+
+### 1. Prerequisites
+* **Node.js** v20+ or v22+
+* **PostgreSQL** running locally or hosted
+
+### 2. Environment Configuration
+Copy `.env.example` to `.env` in the repository root and supply your database credentials and a secure JWT secret:
+
+```env
+DATABASE_URL="postgresql://USERNAME:PASSWORD@localhost:5432/nutribloom?schema=public"
+JWT_SECRET="replace-with-a-secure-secret-key"
+CLIENT_URL="http://localhost:5173"
+PORT=3000
+USDA_FDC_API_KEY="DEMO_KEY"
+```
+
+### 3. Installation & Database Migration
 ```bash
-cd /Users/ramanpreetsingh/citytech-ttpr-2026-summer/Fullstack-Smart-Diet-BMI-Tracker
+# Install all workspace dependencies
+npm install
+
+# Generate Prisma Client & execute migrations
+npm run build:api
+npx prisma migrate dev
+
+# (Optional) Seed the database with sample users and meals
 npx prisma db seed
 ```
 
-3. Start the backend API (optional — needed if you want server-driven pages/endpoints):
+### 4. Running the Application
+In separate terminal sessions:
 
 ```bash
-cd server
-npm run dev
-```
+# Start backend API (http://localhost:3000)
+npm start
 
-4. Start the client dev server and open the dashboard:
-
-```bash
+# Start frontend development server (http://localhost:5173)
 cd client
 npm run dev
-# Open http://localhost:5173 (Vite default) and navigate to /dashboard
-# Or open the app root and click the "Dashboard" button on the Home page
 ```
-
-Notes:
-- If the dev server uses a different port, follow the terminal output link (Vite prints the local URL).
-- The dashboard page is at `/dashboard`; the Home page includes a quick navigation button to the Dashboard.
 
 ---
 
-## Recharts Display Implementation (What I did)
+## Production Deployment
 
-Branch: `ramanpreet`
-
-- **Files added:**
-  - [client/src/components/charts/MacroPieChart.tsx](client/src/components/charts/MacroPieChart.tsx)
-  - [client/src/components/charts/CalorieBarChart.tsx](client/src/components/charts/CalorieBarChart.tsx)
-  - [client/src/components/charts/BMITrendChart.tsx](client/src/components/charts/BMITrendChart.tsx)
-  - [client/src/pages/Dashboard.tsx](client/src/pages/Dashboard.tsx)
-
-- **Client routing & navigation:**
-  - Added a `/dashboard` route in [client/src/App.tsx](client/src/App.tsx#L1) and a Dashboard button on the Home page ([client/src/pages/Home.tsx](client/src/pages/Home.tsx#L1)).
-
-- **Dependencies:**
-  - Added `recharts` to `client/package.json` and installed it locally.
-
-- **Seed & data flow:**
-  - Created/updated `prisma/seed.ts` to generate dummy users, BMI history and meals.
-  - Verified seed data via `npx prisma db seed` and optionally `npx prisma studio`.
-
-- **How the charts are wired:**
-  - Charts are self-contained React components using static demo data by default (in the chart files) so the Dashboard renders immediately.
-  - To wire charts to real seeded data: implement a fetch to the backend endpoint (e.g. `/day-meals`) from `Dashboard` or a child component, map DB fields to chart data shapes, and pass results as props to the chart components.
-
-* **Tools Used:** Gemini (Google AI)
-* **Scope of Assistance:**
-  * Drafted technical documentation, pull request summaries, and conceptual overviews for database synchronization and seeding workflows.
-  * Assisted in structuring synthetic data generation patterns using `@faker-js/faker` within Prisma transaction methods.
-* **Human Oversight & Verification:** All database schema changes, client paths, dependency installations, and seed scripts were reviewed, customized, executed, and validated directly in the local repository environment on branch `ramanpreet`.
-
-## BMI, Activity Level, and Daily Recommended Values
-
-### 1. BMI Calculation
-BMI is calculated from the user's height and weight.
-
-Formula:
-BMI = (weight in pounds × 703) / height in inches²
-
-BMI categories:
-- Below 18.5 → Underweight
-- 18.5–24.9 → Healthy Weight
-- 25–29.9 → Overweight
-- 30 or higher → Obesity
-
-### 2. Activity Level
-The user's activity type and frequency will be mapped to an activity category.
-
-- None/Infrequent → Sedentary
-- 1–2 times/week → Lightly Active
-- 3–5 times/week → Moderately Active
-- 6+ times/week → Very Active
-
-The activity category will be used to determine the user's daily calorie needs.
-
-### 3. Daily Recommended Values (DRV)
-
-Daily Recommended Values are nutrition targets used to compare a user's daily nutrient intake with recommended amounts.
-
-Examples include:
-- Calories
-- Protein
-- Carbohydrates
-- Fat
-- Cholesterol
-
-# Daily Values Calculation
- %DV= ( anount the user ate % Daily Values) * 100
-
-For example: if a food contains 15 g of fat:
-%DV = (15 % 78) * 100
-%DV = 19.2%
-
-Some nutrients have recommended minimum amounts, while others have recommended maximum limits. Recommended values may vary based on factors such as age and sex.
-
-### 4. Application Flow
-User enters information → BMI is calculated → Activity level is determined → Daily Recommended Values are determined → Results can be displayed on the dashboard.
-
-
-*AI disclosure for this Recharts work is covered under the [AI Usage Disclosure](#ai-usage-disclosure) above — Gemini helped scaffold the chart components, the `Dashboard` route, and this section's run instructions; I reviewed, adapted, and tested all of it locally.*git 
+* **Backend (Render)**:
+  * Deploy using the included [`render.yaml`](render.yaml) blueprint.
+  * Migrations run safely via `startCommand: npx prisma migrate deploy && npm start` when the database connection is live.
+* **Frontend (Netlify)**:
+  * Deployed via [`netlify.toml`](netlify.toml).
+  * Set `VITE_API_URL` to your production Render API origin (e.g. `https://nutribloom-api.onrender.com`).

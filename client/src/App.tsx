@@ -8,6 +8,7 @@ import AddMeal from './pages/AddMeal';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
+import DayMeals from './pages/DayMeals';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -34,41 +35,43 @@ import './theme/variables.css';
 setupIonicReact();
 
 const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
+  <IonApp>
+    <IonReactRouter>
+      <IonRouterOutlet>
+        <Route exact path="/home">
+          <Home />
+        </Route>
 
-        <Route exact path="/home">
-          <Home />
-        </Route>
+        <Route exact path="/login">
+          <Login />
+        </Route>
 
-        <Route exact path="/login">
-          <Login />
-        </Route>
+        <Route exact path="/signup">
+          <SignUp />
+        </Route>
 
-        <Route exact path="/signup">
-          <SignUp />
-        </Route>
+        <Route exact path="/intake">
+          <Intake />
+        </Route>
 
-        <Route exact path="/intake">
-          <Intake />
-        </Route>
+        <Route exact path="/meal">
+          <AddMeal />
+        </Route>
 
-        <Route exact path="/meal">
-          <AddMeal />
-        </Route>
+        <Route exact path="/dashboard">
+          <Dashboard />
+        </Route>
 
-        <Route exact path="/dashboard">
-          <Dashboard />
-        </Route>
+        <Route exact path="/day-meals">
+          <DayMeals />
+        </Route>
 
-        <Route exact path="/">
-          <Redirect to="/login" />
-        </Route>
-
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
+        <Route exact path="/">
+          <Redirect to="/login" />
+        </Route>
+      </IonRouterOutlet>
+    </IonReactRouter>
+  </IonApp>
 );
 
 export default App;

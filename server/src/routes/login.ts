@@ -94,4 +94,87 @@ loginRouter.post("/login", loginLimiter, passport.authenticate("local", {session
   }
 });
 
+// POST DEMO LOGIN, /demo-login
+loginRouter.post("/demo-login", async (_req, res) => {
+  try {
+    const demoEmail = "demo@nutribloom.com";
+    let demoUser = await prisma.user.findUnique({
+      where: { email: demoEmail },
+    });
+
+    if (!demoUser) {
+      const hashedPassword = await bcrypt.hash("demo123", 10);
+      demoUser = await prisma.user.create({
+        data: {
+          name: "Demo Explorer",
+          email: demoEmail,
+          password: hashedPassword,
+          info: {
+            create: {
+              age: 28,
+              sex: "Female",
+              heightFeet: 5,
+              heightInches: 6,
+              weight: 140,
+              activityType: "Cardio",
+              activityFrequency: "15",
+              fitnessGoal: "Maintenance",
+            },
+          },
+        },
+      });
+
+      // Populate demo meals
+      await prisma.meal.create({
+        data: {
+          userId: demoUser.id,
+          mealType: "BREAKFAST",
+          date: new Date(),
+          items: {
+            create: {
+              foodName: "Avocado Toast & Boiled Eggs",
+              portion: "2 slices",
+              calories: 380,
+              protein: 16,
+              carbs: 34,
+              fat: 20,
+            },
+          },
+        },
+      });
+
+      await prisma.meal.create({
+        data: {
+          userId: demoUser.id,
+          mealType: "LUNCH",
+          date: new Date(),
+          items: {
+            create: {
+              foodName: "Mediterranean Grain Bowl",
+              portion: "1 bowl",
+              calories: 520,
+              protein: 28,
+              carbs: 65,
+              fat: 16,
+            },
+          },
+        },
+      });
+    }
+
+    const token = jwt.sign({ sub: demoUser.id }, JWT_SECRET, { expiresIn: "1h" });
+
+    return res.status(200).json({
+      message: "Demo login successful",
+      uuid: demoUser.id,
+      name: demoUser.name,
+      email: demoUser.email,
+      token,
+    });
+  } catch (error) {
+    console.error("Demo login error:", error);
+    return res.status(500).json({ message: "Failed to execute demo login" });
+  }
+});
+
 export default loginRouter;

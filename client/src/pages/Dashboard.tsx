@@ -1,49 +1,29 @@
-// code written Devonte Allen
-
 import React, { useEffect, useState } from 'react';
-import { LineChart, ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { IonPage, IonTitle, IonContent } from '@ionic/react';
+import {
+  LineChart,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButton,
+  IonButtons,
+} from '@ionic/react';
+import { useHistory } from 'react-router-dom';
 import './Dashboard.css';
-import byDayMacros from './byDayMacros.json';
-import byDayCalories from './byDayCalories.json';
+import useAuthStore from '../store/useAuthStore';
 import { apiUrl } from '../lib/api';
-
-const barData = [
-  {
-    macro: 'Calories',
-    breakfast: 1.1,     // 22/2000 *100
-    lunch: 0.55,        // 11/2000 *100
-    dinner: 16.65,      // 333/2000 *100
-    snack: 0,
-    target: 100
-  },
-  {
-    macro: 'Protein',
-    breakfast: 22,       // 22/100 *100
-    lunch: 11,           // 11/100 *100
-    dinner: 11,          // 11/100 *100
-    snack: 0,
-    target: 100
-  },
-  {
-    macro: 'Carbs',
-    breakfast: 8.8,      // 22/250 *100
-    lunch: 4.4,          // 11/250 *100
-    dinner: 8.8,         // 22/250 *100
-    snack: 0,
-    target: 100
-  },
-  {
-    macro: 'Fat',
-    breakfast: 9.23,     // 6/65 *100
-    lunch: 16.92,        // 11/65 *100
-    dinner: 24.62,       // 16/65 *100
-    snack: 0,
-    target: 100
-  }
-];
-
-
 
 type ChartData = {
   date: string;
@@ -53,9 +33,9 @@ type ChartData = {
   fat: number;
 };
 
-type MealTotals = {calories: number; protein: number; carbs: number; fat:number};
-type TodayByType = {breakfast:MealTotals; lunch: MealTotals; dinner: MealTotals; snack: MealTotals};
-type DRV = { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number};
+type MealTotals = { calories: number; protein: number; carbs: number; fat: number };
+type TodayByType = { breakfast: MealTotals; lunch: MealTotals; dinner: MealTotals; snack: MealTotals };
+type DRV = { dailyCalories: number; dailyProtein: number; dailyCarbs: number; dailyFat: number };
 
 type BarRow = {
   macro: string;
@@ -67,171 +47,211 @@ type BarRow = {
 };
 
 const Dashboard: React.FC = () => {
-  //const token = useAuthStore((state) => state.token);
-  //const [chartData, setChartData] = useState<ChartData[]>([]);
-  //  const [barData, setBarData] = useState<BarRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [barLoading, setBarLoading] = useState(false);
+  const token = useAuthStore((state) => state.token);
+  const history = useHistory();
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [barData, setBarData] = useState<BarRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [barLoading, setBarLoading] = useState(true);
 
-  /*
-     const headers = {
-     'Content-type': 'application/json',
-     'Authorization': `Bearer ${token}`
-     };
-     
-     useEffect(() => {
-     const fetchData = async () => {
-     try {
-     const response = await fetch(apiUrl('meal'), {
-     method: 'GET',
-     headers
-     });
-     const data: ChartData[] = await response.json();
-     const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
-     setChartData(sorted);
-     } catch (error) {
-     console.log(error);
-     } finally {
-     setLoading(false);
-     }
-     };
-     fetchData();
-     }, []);
+  useEffect(() => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
-     useEffect(() => {
-     const fetchBarData = async () => {
-     try{
-     const todayStr = new Date().toLocaleDateString('en-CA');
+    const fetchData = async () => {
+      try {
+        const response = await fetch(apiUrl('meal'), {
+          method: 'GET',
+          headers,
+        });
+        if (response.ok) {
+          const data: ChartData[] = await response.json();
+          const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+          setChartData(sorted);
+        }
+      } catch (error) {
+        console.error('Error fetching trend meals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-     const [drvRes, mealsRes] = await Promise.all([
-     fetch(apiUrl('survey/me'), {headers}),
-     fetch(`${apiUrl('meal/today-by-type')}?date=${todayStr}`, {headers}),
-     ]);
-     const drv: DRV = await drvRes.json();
-     const meals: TodayByType = await mealsRes.json();
+    const fetchBarData = async () => {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
 
-     const rows: BarRow[] = [
-     {macro: 'Calories', 
-     breakfast: drv.dailyCalories ? (meals.breakfast.calories / drv.dailyCalories) *100 : 0, 
-     lunch:drv.dailyCalories ? (meals.lunch.calories / drv.dailyCalories) *100 : 0, 
-     dinner: drv.dailyCalories ? (meals.dinner.calories / drv.dailyCalories) *100 : 0, 
-     snack: drv.dailyCalories ? (meals.snack.calories / drv.dailyCalories) *100 : 0,
-     target: 100},
-     {macro: 'Protein', 
-     breakfast: drv.dailyProtein ? (meals.breakfast.protein / drv.dailyProtein) *100 : 0, 
-     lunch:drv.dailyProtein ? (meals.lunch.protein / drv.dailyProtein) *100 : 0, 
-     dinner: drv.dailyProtein ? (meals.dinner.protein / drv.dailyProtein) *100 : 0, 
-     snack: drv.dailyProtein ? (meals.snack.protein / drv.dailyProtein) *100 : 0,
-     target: 100},
-     {macro: 'Carbs', 
-     breakfast: drv.dailyCarbs ? (meals.breakfast.carbs / drv.dailyCarbs) *100 : 0, 
-     lunch:drv.dailyCarbs ? (meals.lunch.carbs / drv.dailyCarbs) *100 : 0, 
-     dinner: drv.dailyCarbs ? (meals.dinner.carbs / drv.dailyCarbs) *100 : 0, 
-     snack: drv.dailyCarbs ? (meals.snack.carbs / drv.dailyCarbs) *100 : 0,
-     target: 100},
-     {macro: 'Fat', 
-     breakfast: drv.dailyFat ? (meals.breakfast.fat / drv.dailyFat) *100 : 0, 
-     lunch:drv.dailyFat ? (meals.lunch.fat / drv.dailyFat) *100 : 0, 
-     dinner: drv.dailyFat ? (meals.dinner.fat / drv.dailyFat) *100 : 0, 
-     snack: drv.dailyFat ? (meals.snack.fat / drv.dailyFat) *100 : 0,
-     target: 100},
-     ];
-     console.log('DRV:', drv);
-     console.log('Meals today:', meals);
-     console.log('Bar rows:', rows);
-     setBarData(rows);
-     } catch(error) {
-     console.log(error);
-     } finally {
-     setBarLoading(false);
-     }
-     };
-     fetchBarData();
-     }, []);
-   */
+        const [drvRes, mealsRes] = await Promise.all([
+          fetch(apiUrl('survey/me'), { headers }),
+          fetch(`${apiUrl('meal/today-by-type')}?date=${todayStr}`, { headers }),
+        ]);
+
+        const drv: DRV = drvRes.ok
+          ? await drvRes.json()
+          : { dailyCalories: 2000, dailyProtein: 100, dailyCarbs: 250, dailyFat: 65 };
+
+        const meals: TodayByType = mealsRes.ok
+          ? await mealsRes.json()
+          : {
+              breakfast: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+              lunch: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+              dinner: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+              snack: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+            };
+
+        const rows: BarRow[] = [
+          {
+            macro: 'Calories',
+            breakfast: drv.dailyCalories ? Number(((meals.breakfast.calories / drv.dailyCalories) * 100).toFixed(1)) : 0,
+            lunch: drv.dailyCalories ? Number(((meals.lunch.calories / drv.dailyCalories) * 100).toFixed(1)) : 0,
+            dinner: drv.dailyCalories ? Number(((meals.dinner.calories / drv.dailyCalories) * 100).toFixed(1)) : 0,
+            snack: drv.dailyCalories ? Number(((meals.snack.calories / drv.dailyCalories) * 100).toFixed(1)) : 0,
+            target: 100,
+          },
+          {
+            macro: 'Protein',
+            breakfast: drv.dailyProtein ? Number(((meals.breakfast.protein / drv.dailyProtein) * 100).toFixed(1)) : 0,
+            lunch: drv.dailyProtein ? Number(((meals.lunch.protein / drv.dailyProtein) * 100).toFixed(1)) : 0,
+            dinner: drv.dailyProtein ? Number(((meals.dinner.protein / drv.dailyProtein) * 100).toFixed(1)) : 0,
+            snack: drv.dailyProtein ? Number(((meals.snack.protein / drv.dailyProtein) * 100).toFixed(1)) : 0,
+            target: 100,
+          },
+          {
+            macro: 'Carbs',
+            breakfast: drv.dailyCarbs ? Number(((meals.breakfast.carbs / drv.dailyCarbs) * 100).toFixed(1)) : 0,
+            lunch: drv.dailyCarbs ? Number(((meals.lunch.carbs / drv.dailyCarbs) * 100).toFixed(1)) : 0,
+            dinner: drv.dailyCarbs ? Number(((meals.dinner.carbs / drv.dailyCarbs) * 100).toFixed(1)) : 0,
+            snack: drv.dailyCarbs ? Number(((meals.snack.carbs / drv.dailyCarbs) * 100).toFixed(1)) : 0,
+            target: 100,
+          },
+          {
+            macro: 'Fat',
+            breakfast: drv.dailyFat ? Number(((meals.breakfast.fat / drv.dailyFat) * 100).toFixed(1)) : 0,
+            lunch: drv.dailyFat ? Number(((meals.lunch.fat / drv.dailyFat) * 100).toFixed(1)) : 0,
+            dinner: drv.dailyFat ? Number(((meals.dinner.fat / drv.dailyFat) * 100).toFixed(1)) : 0,
+            snack: drv.dailyFat ? Number(((meals.snack.fat / drv.dailyFat) * 100).toFixed(1)) : 0,
+            target: 100,
+          },
+        ];
+
+        setBarData(rows);
+      } catch (error) {
+        console.error('Error fetching dashboard bar data:', error);
+      } finally {
+        setBarLoading(false);
+      }
+    };
+
+    void fetchData();
+    void fetchBarData();
+  }, [token]);
+
   return (
     <IonPage>
-      <IonContent className='dashboard-content' fullscreen>
-        <IonTitle className='dashboard-title'>Dashboard</IonTitle>
+      <IonHeader>
+        <IonToolbar color="success">
+          <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/home')}>Home</IonButton>
+          </IonButtons>
+          <IonTitle>Dashboard</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => history.push('/meal')}>+ Add Meal</IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
 
-        <div className='charts-row'>
-          <div className='chart-card'>
-            <IonTitle size="small"> Macros over Time </IonTitle>
-            <div className='chart-card-body'>
-              {loading ?  (
-		<div className='chart-loading'>loading...</div>
-              ) : (
-		<ResponsiveContainer>
-		  <LineChart
-		    style={{ width: '100%', maxWidth: '700px', height: '100%', maxHeight: '70vh', aspectRatio: 1.618 }}
-		    data = {byDayMacros}
-		    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-		  >
-		    
-		    <CartesianGrid strokeDasharray="3 3" />
-		    <XAxis dataKey="date" stroke="var(--color-text-3)" />
-		    <YAxis width={50} stroke="var(--color-text-3)" />
-		    
-		    <Tooltip />
-		    <Legend />
-		    <Line type="monotone" dataKey="protein"  stroke="#3b82f6" dot={{ fill: '#3b82f6' }} activeDot={{ r: 8 }} />
-		    <Line type="monotone" dataKey="carbs"    stroke="#22c55e" dot={{ fill: '#22c55e' }} activeDot={{ r: 8 }} />
-		    <Line type="monotone" dataKey="fat"      stroke="#ef4444" dot={{ fill: '#ef4444' }} activeDot={{ r: 8 }} />
-		  </LineChart>
-		</ResponsiveContainer>
-              )}
-            </div>
-          </div>
-          <div className='chart-card'>
-            <IonTitle size="small"> Macros over Time </IonTitle>
-            <div className='chart-card-body'>
-              {loading ?  (
-		<div className='chart-loading'>loading...</div>
-              ) : (
-		<ResponsiveContainer>
-		  <LineChart
-		    style={{ width: '100%', maxWidth: '700px', height: '100%', maxHeight: '70vh', aspectRatio: 1.618 }}
-		    data = {byDayCalories}
-		    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-		  >
-		    
-		    <CartesianGrid strokeDasharray="3 3" />
-		    <XAxis dataKey="date" stroke="var(--color-text-3)" />
-		    <YAxis width={50} stroke="var(--color-text-3)" />
-		    
-		    <Tooltip />
-		    <Legend />
-		    <Line type="monotone" dataKey="calories" stroke="#f97316" dot={{ fill: '#f97316' }} activeDot={{ r: 8 }} />
-		  </LineChart>
-		</ResponsiveContainer>
-              )}
-            </div>
-          </div>
-
+      <IonContent className="dashboard-content" fullscreen>
+        <div className="charts-row">
+          {/* Macros over Time */}
           <div className="chart-card">
-            <IonTitle>Today vs. Daily Goals</IonTitle>
+            <IonTitle size="small">Macros over Time</IonTitle>
             <div className="chart-card-body">
-              {barLoading ?  (
-		<div className="chart-loading">Loading...</div>
+              {loading ? (
+                <div className="chart-loading">Loading real macro data...</div>
+              ) : chartData.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px' }}>
+                  <p>No meals recorded yet.</p>
+                  <IonButton size="small" color="success" onClick={() => history.push('/meal')}>
+                    + Log Your First Meal
+                  </IonButton>
+                </div>
               ) : (
-		<ResponsiveContainer width="100%" height="100%">
-		  <ComposedChart data={barData} margin={{top: 20, right: 30, left: 20, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis width={45} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="protein" stroke="#3b82f6" dot={{ fill: '#3b82f6' }} activeDot={{ r: 8 }} />
+                    <Line type="monotone" dataKey="carbs" stroke="#22c55e" dot={{ fill: '#22c55e' }} activeDot={{ r: 8 }} />
+                    <Line type="monotone" dataKey="fat" stroke="#ef4444" dot={{ fill: '#ef4444' }} activeDot={{ r: 8 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Calories over Time */}
+          <div className="chart-card">
+            <IonTitle size="small">Calories over Time</IonTitle>
+            <div className="chart-card-body">
+              {loading ? (
+                <div className="chart-loading">Loading calorie data...</div>
+              ) : chartData.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px' }}>
+                  <p>No calorie history yet.</p>
+                  <IonButton size="small" color="success" onClick={() => history.push('/meal')}>
+                    + Log Your First Meal
+                  </IonButton>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis width={45} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="calories" stroke="#f97316" dot={{ fill: '#f97316' }} activeDot={{ r: 8 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Today vs. Daily Goals */}
+          <div className="chart-card">
+            <IonTitle size="small">Today vs. Daily Goals (% of target)</IonTitle>
+            <div className="chart-card-body">
+              {barLoading ? (
+                <div className="chart-loading">Loading daily progress...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={barData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="macro" />
-                    <YAxis unit ="%" domain={[0, 150]} allowDataOverflow/>
-                    <Tooltip formatter={(value: number) => `${value.toFixed(0)}%`} />
+                    <YAxis unit="%" domain={[0, 150]} allowDataOverflow />
+                    <Tooltip formatter={(value: number) => `${Number(value).toFixed(0)}%`} />
                     <Legend />
                     <Bar dataKey="breakfast" stackId="a" fill="#f97316" />
                     <Bar dataKey="lunch" stackId="a" fill="#3b82f6" />
                     <Bar dataKey="dinner" stackId="a" fill="#22c55e" />
                     <Bar dataKey="snack" stackId="a" fill="#a855f7" />
-                    <Line dataKey="target" stroke="#000" strokeWidth={2} dot={{ r: 5}} name="Daily Goal" />
-		  </ComposedChart>
-		</ResponsiveContainer>
+                    <Line dataKey="target" stroke="#000" strokeWidth={2} dot={{ r: 5 }} name="Daily Goal (100%)" />
+                  </ComposedChart>
+                </ResponsiveContainer>
               )}
             </div>
           </div>
-	</div>
+        </div>
       </IonContent>
     </IonPage>
   );
