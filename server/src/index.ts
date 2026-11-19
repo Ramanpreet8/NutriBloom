@@ -35,7 +35,7 @@ app.use(express.json());
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
-app.get("/day-meals", getDayMeals);
+app.get("/day-meals", passport.authenticate("jwt", { session: false }), getDayMeals);
 app.use("/signup", router);
 app.use("/SignUp", router);
 app.use("/users", router);

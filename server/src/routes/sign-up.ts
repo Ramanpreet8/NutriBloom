@@ -2,6 +2,7 @@
 // JC approved nocheck 2026-08-11
 import express from "express";
 import bcrypt from "bcryptjs";
+import passport from "passport";
 import prisma from "../lib/prisma.js";
 
 
@@ -56,10 +57,20 @@ router.post("/", async (req, res) => {
 });
 
 
-// GET ALL USERS, /users
-router.get("/", async (req, res) => {
+// GET USERS (restricted to authenticated user), /users
+router.get("/", passport.authenticate("jwt", { session: false }), async (req, res) => {
   try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
     const users = await prisma.user.findMany({
+      where: {
+        id: user.id,
+      },
       select: {
         id: true,
         name: true,
@@ -80,9 +91,22 @@ router.get("/", async (req, res) => {
 
 
 // GET ONE USER, /users/:id
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", passport.authenticate("jwt", { session: false }), async (req, res) => {
   try {
     const { id } = req.params;
+    const authUser = req.user;
+
+    if (!authUser) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    if (authUser.id !== id) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
 
     const user = await prisma.user.findUnique({
       where: {
@@ -101,7 +125,6 @@ router.get("/users/:id", async (req, res) => {
       });
     }
 
-    console.log('puta');
     res.json(user);
   } catch (error) {
     console.error(error);

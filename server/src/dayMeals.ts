@@ -3,15 +3,24 @@ import prisma from './lib/prisma.js';
 
 export const getDayMeals = async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     const { dietType } = req.query;
     if (dietType !== undefined && (typeof dietType !== 'string' || dietType.length === 0)) {
       res.status(400).json({ error: 'dietType must be a non-empty string' });
       return;
     }
 
-    // Fetch real meals from the database
+    // Fetch real meals from the database for the authenticated user
     const meals = await prisma.meal.findMany({
-      ...(dietType ? { where: { dietType } } : {}),
+      where: {
+        userId: user.id,
+        ...(dietType ? { dietType } : {}),
+      },
       include: {
         items: true, // Fetches the related food items for each meal
       },

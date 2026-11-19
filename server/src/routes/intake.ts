@@ -173,10 +173,22 @@ intakeRouter.get("/survey",
   }
 });
 
-// GET ALL INTAKE
-intakeRouter.get("/intake", async (req, res) => {
+// GET INTAKE FOR AUTHENTICATED USER
+intakeRouter.get("/intake", passport.authenticate("jwt", { session: false }), async (req, res) => {
   try {
-    const intake = await prisma.userInfo.findMany();
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const intake = await prisma.userInfo.findMany({
+      where: {
+        userId: user.id,
+      },
+    });
 
     res.status(200).json(intake);
   } catch (error) {
