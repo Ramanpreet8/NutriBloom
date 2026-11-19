@@ -6,9 +6,11 @@
     "server"
   ],
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx server/src/index.ts",
     "start": "tsx server/src/index.ts",
-    "build:api": "prisma generate && prisma migrate deploy"
+    "build:api": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
+    "test": "npm run test --workspace=server"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
@@ -25,7 +27,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "bcryptjs": "^3.0.3",
-    "express": "^5.2.1",
+    "express": "^4.21.2",
     "pg": "^8.23.0",
     "tsx": "^4.23.12",
     "prisma": "^7.9.1",
