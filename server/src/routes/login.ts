@@ -162,7 +162,8 @@ loginRouter.post("/demo-login", async (_req, res) => {
       });
     }
 
-    const token = jwt.sign({ sub: demoUser.id }, JWT_SECRET, { expiresIn: "1h" });
+    // Demo login issues a short-lived token (15m)
+    const token = jwt.sign({ sub: demoUser.id }, JWT_SECRET, { expiresIn: "15m" });
 
     return res.status(200).json({
       message: "Demo login successful",

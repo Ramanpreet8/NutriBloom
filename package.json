@@ -10,7 +10,11 @@
     "start": "tsx server/src/index.ts",
     "build:api": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
+    "seed": "tsx prisma/seed.ts",
     "test": "npm run test --workspace=server"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",

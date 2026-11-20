@@ -148,14 +148,19 @@ router.get("/users/:id", passport.authenticate("jwt", { session: false }), async
 
 
 // UPDATE USER, /users/:id
-router.put("/", async (req, res) => {
+const updateUserHandler = async (req, res) => {
   try {
-    const { uuid } = req.params;
-    const { name, email, password } = req.body;
+    const id = req.params.id || req.params.uuid || req.body.id || req.body.uuid;
+
+    if (!id) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
 
     const existingUser = await prisma.user.findUnique({
       where: {
-        uuid,
+        id,
       },
     });
 
@@ -165,6 +170,13 @@ router.put("/", async (req, res) => {
       });
     }
 
+    if (existingUser.email === "demo@nutribloom.com") {
+      return res.status(403).json({
+        message: "Demo user cannot be modified or deleted",
+      });
+    }
+
+    const { name, email, password } = req.body;
     const data: {
       name?: string;
       email?: string;
@@ -180,11 +192,11 @@ router.put("/", async (req, res) => {
 
     const user = await prisma.user.update({
       where: {
-        uuid,
+        id,
       },
       data,
       select: {
-        uuid: true,
+        id: true,
         name: true,
         email: true,
       },
@@ -199,11 +211,14 @@ router.put("/", async (req, res) => {
       message: "Failed to update user",
     });
   }
-});
+};
+
+router.put("/", updateUserHandler);
+router.put("/users/:id", updateUserHandler);
 
 
 // DELETE USER, /users/:id
-router.delete("/users/:id", async (req, res) => {
+const deleteUserHandler = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -216,6 +231,12 @@ router.delete("/users/:id", async (req, res) => {
     if (!existingUser) {
       return res.status(404).json({
         message: "User not found",
+      });
+    }
+
+    if (existingUser.email === "demo@nutribloom.com") {
+      return res.status(403).json({
+        message: "Demo user cannot be modified or deleted",
       });
     }
 
@@ -236,7 +257,9 @@ router.delete("/users/:id", async (req, res) => {
       message: "Failed to delete user",
     });
   }
-});
+};
+
+router.delete("/users/:id", deleteUserHandler);
 
 
 export default router;

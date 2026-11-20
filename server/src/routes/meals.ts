@@ -86,6 +86,9 @@ mealRouter.get("/meal", passport.authenticate("jwt", { session: false }), async 
 
 // POST a meal
 mealRouter.post("/meal",passport.authenticate("jwt", { session: false }),async (req, res) => {
+  if (req.user?.email === "demo@nutribloom.com") {
+    return res.status(403).json({ error: "Demo user cannot be modified or deleted" });
+  }
   const items = Array.isArray(req.body) ? req.body : [req.body];
   const createdMeals = [];
   for (const m of items) {
@@ -252,6 +255,12 @@ mealRouter.put("/meal/:id", passport.authenticate("jwt", { session: false }),asy
         });
       }
 
+      if (user.email === "demo@nutribloom.com") {
+        return res.status(403).json({
+          error: "Demo user cannot be modified or deleted",
+        });
+      }
+
       const { mealType, date, items } = req.body;
 
       const existingMeal = await prisma.meal.findFirst({
@@ -309,6 +318,12 @@ mealRouter.delete("/meal/:id",passport.authenticate("jwt", { session: false }),a
       if (!user) {
         return res.status(404).json({
           error: "User not found",
+        });
+      }
+
+      if (user.email === "demo@nutribloom.com") {
+        return res.status(403).json({
+          error: "Demo user cannot be modified or deleted",
         });
       }
 

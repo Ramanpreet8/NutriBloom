@@ -56,6 +56,12 @@ intakeRouter.post("/survey", passport.authenticate("jwt", { session: false }), a
       });
     }
 
+    if (user.email === "demo@nutribloom.com") {
+      return res.status(403).json({
+        error: "Demo user cannot be modified or deleted",
+      });
+    }
+
 
     if (!user.id) {
       return res.status(400).json({
@@ -217,6 +223,12 @@ intakeRouter.put("/survey", passport.authenticate("jwt", { session: false }), as
         error: "Unauthorized",
       });
     }
+
+    if (user.email === "demo@nutribloom.com") {
+      return res.status(403).json({
+        error: "Demo user cannot be modified or deleted",
+      });
+    }
     const {
       age,
       feet,
@@ -276,6 +288,12 @@ intakeRouter.delete(
       if (!user) {
         return res.status(401).json({
           error: "Unauthorized",
+        });
+      }
+
+      if (user.email === "demo@nutribloom.com") {
+        return res.status(403).json({
+          error: "Demo user cannot be modified or deleted",
         });
       }
 

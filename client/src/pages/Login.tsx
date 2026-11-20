@@ -72,7 +72,7 @@ const Login: React.FC = () => {
       const data = await response.json();
       if (response.ok && data.token) {
         setToken(data.token);
-        history.push('/home');
+        history.push('/dashboard');
       } else {
         setErrorMessage(data.message || 'Demo login failed.');
       }
@@ -168,7 +168,7 @@ const Login: React.FC = () => {
               onClick={handleDemoLogin}
             >
               <IonIcon slot="start" icon={flashOutline} />
-              {isDemoSubmitting ? 'Starting Demo...' : 'Try Demo Account (Instant Login)'}
+              {isDemoSubmitting ? 'Loading demo...' : 'Try demo'}
             </IonButton>
           </div>
 
