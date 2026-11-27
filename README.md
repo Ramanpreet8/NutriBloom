@@ -144,6 +144,131 @@ The application data layer is structured around four primary models configured i
 
 ---
 
+## API Endpoints
+
+All endpoints are served from [`server/src/index.ts`](server/src/index.ts). Protected routes require an `Authorization: Bearer <token>` header.
+
+| Method | Path | Auth | Rate Limit | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Public | None | Render health check (`{ "status": "ok" }`). |
+| `POST` | `/signup` | Public | 10 req / 1h per IP | Registers a user with `bcryptjs` hashed password. |
+| `POST` | `/login` | Public (`passport-local`) | 10 req / 15m per IP | Authenticates credentials and issues 1h JWT. |
+| `POST` | `/demo-login` | Public | None | Issues 15m JWT for `demo@nutribloom.com`. |
+| `GET` | `/users` | Bearer JWT | None | Returns the authenticated user's profile. |
+| `POST` / `GET` / `PUT` / `DELETE` | `/survey` | Bearer JWT | None | CRUD for `UserInfo` biometric intake profile. |
+| `GET` | `/survey/me` | Bearer JWT | None | Computes Mifflin-St Jeor BMR, TDEE, and daily macro targets. |
+| `GET` | `/meal` | Bearer JWT | None | Aggregated daily `{ date, calories, protein, carbs, fat }[]`. |
+| `POST` | `/meal` | Bearer JWT | None | Logs one or more meal items (array or object) with nested `MealItem`. |
+| `GET` / `PUT` / `DELETE` | `/meal/:id` | Bearer JWT | None | Single-meal UUID retrieval, update, and cascading delete. |
+| `GET` | `/meal/today-by-type` | Bearer JWT | None | Today's calorie/macro totals grouped by `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`. |
+| `GET` | `/day-meals` | Bearer JWT | None | Returns meals with nested items; optional `?dietType=` filter. |
+| `GET` | `/api/food-search` | Public | Upstream USDA | Searches USDA FoodData Central (`?query=...&pageSize=10`). |
+| `GET` | `/api/food-details/:fdcId` | Public | Upstream USDA | Fetches full USDA food nutrient details by `fdcId`. |
+
+### Example Requests & Responses
+
+**1. Login (`POST /login`)**
+```json
+// Request
+{
+  "email": "alex@example.com",
+  "password": "password123"
+}
+
+// Response (200 OK)
+{
+  "message": "Login successful",
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Alex Rivera",
+  "email": "alex@example.com",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**2. Personalized Daily Recommended Values (`GET /survey/me`)**
+```json
+// Response (200 OK, Authorization: Bearer <token>)
+{
+  "bmr": 1412,
+  "tdee": 2189,
+  "dailyCalories": 2189,
+  "dailyProtein": 137,
+  "dailyCarbs": 246,
+  "dailyFat": 73
+}
+```
+
+**3. Log Multi-Item Meal (`POST /meal`)**
+```json
+// Request (Authorization: Bearer <token>)
+[
+  {
+    "foodName": "Grilled Chicken Breast",
+    "date": "2026-11-27",
+    "quantity": "150g",
+    "calories": 248,
+    "protein": 46.5,
+    "carbs": 0,
+    "fat": 5.4,
+    "mealType": "lunch"
+  }
+]
+
+// Response (201 Created)
+[
+  {
+    "id": "b1a7c8d2-...",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "mealType": "LUNCH",
+    "dietType": "General",
+    "date": "2026-11-27T00:00:00.000Z",
+    "items": [
+      {
+        "id": "9f3d12a4-...",
+        "mealId": "b1a7c8d2-...",
+        "foodName": "Grilled Chicken Breast",
+        "portion": "150g",
+        "calories": 248,
+        "protein": 46.5,
+        "carbs": 0,
+        "fat": 5.4
+      }
+    ]
+  }
+]
+```
+
+**4. USDA Food Search (`GET /api/food-search?query=chicken%20breast&pageSize=1`)**
+```json
+// Response (200 OK)
+{
+  "totalHits": 12450,
+  "foods": [
+    {
+      "fdcId": 171077,
+      "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "dataType": "SR Legacy",
+      "brandOwner": null,
+      "calories": 165,
+      "protein": 31.02,
+      "carbs": 0,
+      "fat": 3.57
+    }
+  ]
+}
+```
+
+---
+
+## Authentication, Authorization & USDA Integration
+
+* **Password & Token Security**: `POST /signup` hashes passwords with `bcryptjs` (`saltRounds = 10`). `POST /login` validates credentials via `passport-local` and issues a signed JWT (`{ sub: user.id }`, 1h TTL; 15m TTL for `/demo-login`).
+* **Rate Limiting**: `express-rate-limit` restricts `/login` to **10 requests per 15 minutes** per IP and `/signup` to **10 requests per hour** per IP, returning `429 Too Many Requests` with standard `RateLimit-*` headers.
+* **Resource Isolation & Demo Guard**: Protected routes extract `req.user.id` via `passport-jwt` (`ExtractJwt.fromAuthHeaderAsBearerToken()`) and scope all Prisma queries to the authenticated user. Requests from `demo@nutribloom.com` to mutating endpoints (`POST`/`PUT`/`DELETE`) are blocked with `403 Forbidden`.
+* **USDA FoodData Central Proxy (`server/src/routes/foodSearch.ts`)**: Queries `https://api.nal.usda.gov/fdc/v1/foods/search` and `/food/:fdcId` using `USDA_FDC_API_KEY` (falling back to `DEMO_KEY`), extracts `Energy`, `Protein`, `Carbohydrate, by difference`, and `Total lipid (fat)` into normalized numeric fields, and forwards upstream HTTP errors cleanly.
+
+---
+
 ## Local Development Setup
 
 ### 1. Prerequisites
@@ -227,6 +352,26 @@ cd server
 NODE_OPTIONS="--experimental-vm-modules" npx jest
 ```
 
+### Verified Test Results
+* **Server Integration Suite (`npm test`)**: **4/4 suites passed, 12/12 tests passed** (mocked Prisma client via Jest + Supertest):
+  * `test/meals.test.ts` — Multi-item `POST /meal` persistence
+  * `test/meals-id.test.ts` — UUID string route handling for `GET /meal/:id` and `DELETE /meal/:id`
+  * `test/intake.test.ts` — Survey creation, duplicate rejection, and DRV calculation
+  * `test/demo-user.test.ts` — Demo JWT issuance and `403 Forbidden` write-protection
+* **Client TypeScript & Vite Production Build (`npm run build --workspace=client`)**: Verified compiling with 0 errors (`client/dist/`).
+
+---
+
+## Engineering Challenges & Solutions
+
+| Challenge | Root Cause | Solution Implemented |
+| :--- | :--- | :--- |
+| **Premature Loop Exit in `POST /meal`** | `POST /meal` returned on the first item inside `for (const m of req.body)`, silently dropping remaining meal items in batch submissions. | Refactored [`server/src/routes/meals.ts`](server/src/routes/meals.ts) to collect all created `Meal` + nested `MealItem` records into `createdMeals` before returning `201 Created`. |
+| **UUID Parsing Crash on Meal Routes** | `GET /meal/:id` and `DELETE /meal/:id` cast `req.params.id` with `Number()`, producing `NaN` against PostgreSQL UUID primary keys. | Updated route handlers to pass string UUIDs directly to Prisma queries and added regression coverage in `server/test/meals-id.test.ts`. |
+| **Unreachable Survey Creation Branch** | `POST /survey` in [`server/src/routes/intake.ts`](server/src/routes/intake.ts) accidentally nested `prisma.userInfo.create` inside `if (!user)` after returning `404`. | Restructured control flow so authenticated users create `UserInfo` cleanly while returning `409 Conflict` on duplicate surveys. |
+| **Brute-Force & Public Endpoint Exposure** | `/login` and `/signup` lacked request throttling, and `/intake`, `/day-meals`, and `/users` lacked JWT guards. | Added `express-rate-limit` windows on `/login` & `/signup` and enforced `passport.authenticate("jwt", { session: false })` across user data routes. |
+| **Shared Public Demo Protection** | Allowing anonymous visitors to try the app risked mutating or deleting seeded 14-day demo telemetry. | Issued 15-minute JWTs via `POST /demo-login` and enforced an API-level `403 Forbidden` immutability guard for `demo@nutribloom.com`. |
+
 ---
 
 ## Known Limitations
@@ -240,7 +385,12 @@ NODE_OPTIONS="--experimental-vm-modules" npx jest
 
 ## Engineering Contributions & AI Collaboration
 
-### Contributions by Ramanpreet Singh
+### Original 5-Person Academic Prototype
+NutriBloom began as a collaborative 5-person academic team project (**Ramanpreet Singh**, **Nusrat Jerin**, **Mst Khatun**, **Jacob**, and **Devonte Allen**):
+* **Frontend UI & Flows**: Ionic React pages (`Login`, `SignUp`, `Home`, `Intake`, `AddMeal`), CSS/dark-mode styling, Zustand auth store, and initial Recharts layout (`Dashboard.tsx` by Devonte Allen).
+* **Initial Auth & CRUD Scaffolding**: Express route scaffolding for signup, login, survey, and meals.
+
+### Contributions by Ramanpreet Singh (Backend/Database Lead & Independent Extensions)
 * **Architecture & Monorepo Optimization**: Re-architected the project into an npm workspace monorepo, unified dependencies across packages, synchronized Express versions (`4.21.2`), and configured zero-downtime startup commands in [`render.yaml`](render.yaml) (`npx prisma migrate deploy && npm start`).
 * **Security Hardening**:
   * Eliminated plaintext request body logging on sensitive authentication routes (`/signup`).
