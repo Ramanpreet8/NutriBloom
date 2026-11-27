@@ -8,7 +8,7 @@ NutriBloom is a full-stack dietary analytics and meal tracking web application b
 
 ## Live Demo & Instant Preview
 
-* **Live Web Application**: [NutriBloom on Netlify](https://nutribloom.netlify.app) *(or your deployed client URL)*
+* **Live Web Application**: [NutriBloom on Netlify](https://nutribloom8.netlify.app/login) *(or your deployed client URL)*
 * **API Web Service**: [NutriBloom API on Render](https://nutribloom-api.onrender.com)
 
 > [!NOTE]
